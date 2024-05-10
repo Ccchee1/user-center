@@ -54,7 +54,6 @@ create table user_team
     isDelete   tinyint  default 0 not null comment '是否删除'
 ) comment '用户队伍关系';
 
-
 -- 标签表（可以不创建，因为标签字段已经放到了用户表中）
 create table tag
 (
