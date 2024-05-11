@@ -33,7 +33,7 @@ create table team
     description varchar(1024) null comment '描述',
     maxNum      int      default 1 not null comment '最大人数',
     expireTime  datetime null comment '过期时间',
-    userId      bigint comment '用户id（队长 id）',,
+    userId      bigint comment '用户id（队长 id）',
     status      int      default 0 not null comment '0 - 公开，1 - 私有，2 - 加密',
     password    varchar(512) null comment '密码',
     createTime  datetime default CURRENT_TIMESTAMP null comment '创建时间',
@@ -53,7 +53,6 @@ create table user_team
     updateTime datetime default CURRENT_TIMESTAMP null on update CURRENT_TIMESTAMP,
     isDelete   tinyint  default 0 not null comment '是否删除'
 ) comment '用户队伍关系';
-
 
 -- 标签表（可以不创建，因为标签字段已经放到了用户表中）
 create table tag
