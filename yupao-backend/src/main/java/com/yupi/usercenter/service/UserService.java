@@ -72,7 +72,7 @@ public interface UserService extends IService<User> {
      * @param request
      * @return
      */
-    boolean isAdmin(HttpServletRequest request);
+   boolean isAdmin(HttpServletRequest request);
 
     /**
      * 获取登录用户
@@ -87,6 +87,6 @@ public interface UserService extends IService<User> {
      * @param user
      * @return
      */
-    int updateUser(User user);
+    int updateUser(User user,User loginUser);
 
 }

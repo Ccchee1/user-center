@@ -22,6 +22,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static com.yupi.usercenter.contant.UserConstant.ADMIN_ROLE;
 import static com.yupi.usercenter.contant.UserConstant.USER_LOGIN_STATE;
 
 /**
@@ -232,15 +233,55 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             return null;
         }
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        //做一个鉴权,如果获取到的用户为空，那么说明Session中没有登录进去用户
+        if (userObj == null){
+            throw new BusinessException(ErrorCode.NO_AUTH);
+        }
         return (User) userObj;
     }
 
     @Override
-    public int updateUser(User user) {
+    public int updateUser(User user,User loginUser) {
+        Long userId = user.getId();
+        if (userId <= 0){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
         //只有用户和管理员可以修改用户信息
-        return 1;
+        //如果不是管理员，只允许更新当前自己的信息
+        if(!isAdmin(loginUser) && userId != loginUser.getId()){
+            throw new BusinessException(ErrorCode.NO_AUTH);
+        }
+        User oldUser = userMapper.selectById(userId);
+        if (oldUser == null){
+            throw new BusinessException(ErrorCode.NULL_ERROR);
+        }
+        return userMapper.updateById(user);
+        }
+
+    /**
+     * 是否为管理员
+     *
+     * @param request
+     * @return
+     */
+    @Override
+    public boolean isAdmin(HttpServletRequest request) {
+        // 仅管理员可查询
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        User user = (User) userObj;
+        return user != null && user.getUserRole() == ADMIN_ROLE;
     }
 
+    /**
+     * 是否为管理员
+     *
+     * @param loginUser
+     * @return
+     */
+    @Override
+    public boolean isAdmin(User loginUser) {
+        return loginUser != null && loginUser.getUserRole() == ADMIN_ROLE;
+    }
 
     /**
      * 通过sql查询
