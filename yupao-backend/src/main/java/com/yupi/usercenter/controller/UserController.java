@@ -31,7 +31,7 @@ import static com.yupi.usercenter.contant.UserConstant.USER_LOGIN_STATE;
  */
 @RestController
 @RequestMapping("/user")
-@CrossOrigin(origins = {"http://localhost:5173"})
+//@CrossOrigin(origins = {"http://localhost:5173"})
 public class UserController {
 
     @Resource
@@ -139,6 +139,17 @@ public class UserController {
         }
         List<User> userList = userService.searchUsersByTags(tagNameList);
         return ResultUtils.success(userList);
+    }
+
+    @PostMapping("update")
+    public BaseResponse<Integer> updateUser(User user,HttpServletRequest request){
+        //从前端传过来的请求中获取cookie，然后通过cookie找到对应的session，然后找到对应的用户信息，看用户登录
+        if (user == null){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        //Java 会自动进行装箱操作，将 int 类型的返回值转换为 Integer 类型。
+        int updateUser = userService.updateUser(user);
+        return ResultUtils.success(updateUser);
     }
 
     @PostMapping("/delete")

@@ -226,6 +226,21 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }).map(this::getSafetyUser).collect(Collectors.toList());
     }
 
+    @Override
+    public User getLoginUser(HttpServletRequest request) {
+        if(request == null){
+            return null;
+        }
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        return (User) userObj;
+    }
+
+    @Override
+    public int updateUser(User user) {
+        //只有用户和管理员可以修改用户信息
+        return 1;
+    }
+
 
     /**
      * 通过sql查询
