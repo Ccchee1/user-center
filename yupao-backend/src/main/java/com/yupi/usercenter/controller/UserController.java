@@ -153,6 +153,18 @@ public class UserController {
         return ResultUtils.success(result);
     }
 
+    /**
+     * 主页推荐
+     * @return
+     */
+    @GetMapping("/recommend")
+    public BaseResponse<List<User>> recommendUser(){
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        List<User> userList = userService.list(queryWrapper);
+        userList.stream().map(user -> userService.getSafetyUser(user)).collect(Collectors.toList());
+        return ResultUtils.success(userList);
+    }
+
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteUser(@RequestBody long id, HttpServletRequest request) {
         if (userService.isAdmin(request)){
