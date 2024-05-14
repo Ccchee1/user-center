@@ -27,6 +27,10 @@ server:
   port: 8080
   servlet:
     context-path: /api
+#种cookie，和前端有关
+    session:
+      cookie:
+        domain: localhost
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: false
