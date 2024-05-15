@@ -1,6 +1,7 @@
 package com.yupi.usercenter.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.ser.Serializers;
 import com.yupi.usercenter.common.BaseResponse;
 import com.yupi.usercenter.common.ErrorCode;
@@ -11,6 +12,8 @@ import com.yupi.usercenter.model.domain.request.UserLoginRequest;
 import com.yupi.usercenter.model.domain.request.UserRegisterRequest;
 import com.yupi.usercenter.service.UserService;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,6 +39,9 @@ public class UserController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private RedisTemplate redisTemplate;
 
     /**
      * 用户注册
@@ -158,11 +164,25 @@ public class UserController {
      * @return
      */
     @GetMapping("/recommend")
-    public BaseResponse<List<User>> recommendUser(){
+    public BaseResponse<Page<User>> recommendUser(long pageSize,long pageNum,HttpServletRequest request){
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        List<User> userList = userService.list(queryWrapper);
-        userList.stream().map(user -> userService.getSafetyUser(user)).collect(Collectors.toList());
-        return ResultUtils.success(userList);
+        User loginUser = userService.getLoginUser(request);
+        String redisKey = String.format("yupi.user.recommend.%s", loginUser.getId());
+        ValueOperations valueOperations = redisTemplate.opsForValue();
+        Page<User> userPage = (Page<User>) valueOperations.get(redisKey);
+        //如果有缓存那么直接读取
+        if (userPage != null){
+            return ResultUtils.success(userPage);
+        }
+        //如果没有缓存的话就查数据库后更新缓存
+        userPage = userService.page(new Page<>(pageNum, pageSize), queryWrapper);
+        valueOperations.set(redisKey,userPage);
+
+        //List<User> userList = userService.list(queryWrapper);
+        //此处注意还需要在config中配置mybatis拦截器
+        //Page<User> page = userService.page(new Page<>(pageNum, pageSize), queryWrapper);
+        //userList.stream().map(user -> userService.getSafetyUser(user)).collect(Collectors.toList());
+        return ResultUtils.success(userPage);
     }
 
     @PostMapping("/delete")
