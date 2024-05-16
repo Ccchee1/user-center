@@ -11,16 +11,20 @@ import com.yupi.usercenter.model.domain.User;
 import com.yupi.usercenter.model.domain.request.UserLoginRequest;
 import com.yupi.usercenter.model.domain.request.UserRegisterRequest;
 import com.yupi.usercenter.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.ibatis.annotations.Select;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
+import org.xml.sax.helpers.AttributesImpl;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.yupi.usercenter.contant.UserConstant.ADMIN_ROLE;
@@ -34,6 +38,7 @@ import static com.yupi.usercenter.contant.UserConstant.USER_LOGIN_STATE;
  */
 @RestController
 @RequestMapping("/user")
+@Slf4j
 //@CrossOrigin(origins = {"http://localhost:5173"})
 public class UserController {
 
@@ -176,7 +181,12 @@ public class UserController {
         }
         //如果没有缓存的话就查数据库后更新缓存
         userPage = userService.page(new Page<>(pageNum, pageSize), queryWrapper);
-        valueOperations.set(redisKey,userPage);
+        try {
+            //这里记得要给redis的值设置过期时间，否则容易造成内存泄露
+            valueOperations.set(redisKey,userPage,30000, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            log.error("redis插入错误");
+        }
 
         //List<User> userList = userService.list(queryWrapper);
         //此处注意还需要在config中配置mybatis拦截器
