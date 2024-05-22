@@ -2,6 +2,13 @@ package com.yupi.usercenter.service;
 
 import com.yupi.usercenter.model.domain.Team;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.yupi.usercenter.model.domain.User;
+import com.yupi.usercenter.model.dto.TeamQuery;
+import com.yupi.usercenter.model.request.TeamJoinRequest;
+import com.yupi.usercenter.model.request.TeamUpdateRequest;
+import com.yupi.usercenter.model.vo.TeamUserVO;
+
+import java.util.List;
 
 /**
 * @author Li Changhe
@@ -10,4 +17,17 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface TeamService extends IService<Team> {
 
+    /**
+     * 实现添加一个队伍
+     * @param team
+     * @param loginUser
+     * @return
+     */
+    Long addTeam(Team team, User loginUser);
+
+    List<TeamUserVO> listTeams(TeamQuery teamQuery, boolean isAdmin);
+
+    boolean updateTeam(TeamUpdateRequest team, User loginUser);
+
+    boolean joinTeam(TeamJoinRequest teamJoinRequest, User loginUser);
 }

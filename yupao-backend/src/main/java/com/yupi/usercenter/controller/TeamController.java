@@ -8,28 +8,21 @@ import com.yupi.usercenter.common.ResultUtils;
 import com.yupi.usercenter.exception.BusinessException;
 import com.yupi.usercenter.model.domain.Team;
 import com.yupi.usercenter.model.domain.User;
-import com.yupi.usercenter.model.domain.UserTeam;
 import com.yupi.usercenter.model.dto.TeamQuery;
-import com.yupi.usercenter.model.request.UserLoginRequest;
-import com.yupi.usercenter.model.request.UserRegisterRequest;
+import com.yupi.usercenter.model.request.TeamAddRequest;
+import com.yupi.usercenter.model.request.TeamJoinRequest;
+import com.yupi.usercenter.model.request.TeamUpdateRequest;
+import com.yupi.usercenter.model.vo.TeamUserVO;
 import com.yupi.usercenter.service.TeamService;
 import com.yupi.usercenter.service.UserService;
 import com.yupi.usercenter.service.UserTeamService;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
-import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import static com.yupi.usercenter.contant.UserConstant.USER_LOGIN_STATE;
 
 /**
  * 组队功能接口
@@ -50,16 +43,22 @@ public class TeamController {
     @Resource
     UserTeamService userTeamService;
 
+    /**
+     * 添加新建一个队伍
+     * @param teamAddRequest
+     * @param request
+     * @return
+     */
     @PostMapping("/add")
-    public BaseResponse<Long> addTeam(@RequestBody Team team){
-        if (team == null){
+    public BaseResponse<Long> addTeam(@RequestBody TeamAddRequest teamAddRequest, HttpServletRequest request){
+        if (teamAddRequest == null){
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        boolean addResult = teamService.save(team);
-        if ( !addResult ){
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"插入失败");
-        }
-        return ResultUtils.success(team.getId());
+        User loginUser = userService.getLoginUser(request);
+        Team team = new Team();
+        BeanUtils.copyProperties(teamAddRequest,team);
+        Long teamId = teamService.addTeam(team, loginUser);
+        return ResultUtils.success(teamId);
     }
 
     @PostMapping("/delete")
@@ -75,14 +74,21 @@ public class TeamController {
     }
 
 
+    /**
+     * 更新队伍一些设置信息
+     * @param team
+     * @param request
+     * @return
+     */
     @PostMapping("/update")
-    public BaseResponse<Boolean> updateTeam(@RequestBody Team team){
+    public BaseResponse<Boolean> updateTeam(@RequestBody TeamUpdateRequest team, HttpServletRequest request){
         //从前端传过来的请求中获取cookie，然后通过cookie找到对应的session，然后找到对应的用户信息，看用户登录
         if (team == null){
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
+        User loginUser = userService.getLoginUser(request);
         //Java 会自动进行装箱操作，将 int 类型的返回值转换为 Integer 类型。
-        boolean result = teamService.updateById(team);
+        boolean result = teamService.updateTeam(team,loginUser);
         if (!result){
             throw new BusinessException(ErrorCode.SYSTEM_ERROR,"更新失败");
         }
@@ -90,6 +96,24 @@ public class TeamController {
 
     }
 
+    /**
+     *
+     * @param id
+     * @return
+     */
+    @PostMapping("join")
+    public BaseResponse<Boolean> joinTeam(@RequestBody TeamJoinRequest teamJoinRequest,HttpServletRequest request){
+        if (teamJoinRequest == null){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        //Java 会自动进行装箱操作，将 int 类型的返回值转换为 Integer 类型。
+        boolean result = teamService.joinTeam(teamJoinRequest,loginUser);
+        if (!result){
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"更新失败");
+        }
+        return ResultUtils.success(result);
+    }
 
     @GetMapping("/get")
     public BaseResponse<Team> getTeamById(Long id) {
@@ -104,14 +128,12 @@ public class TeamController {
     }
 
     @GetMapping("/list")
-    public BaseResponse<List<Team>> getTeam(TeamQuery teamQuery){
+    public BaseResponse<List<TeamUserVO>> getTeam(TeamQuery teamQuery,HttpServletRequest request){
         if(teamQuery ==null){
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        Team team =new Team();
-        BeanUtils.copyProperties(team,teamQuery);
-        QueryWrapper<Team> queryWrapper = new QueryWrapper<>(team);
-        List<Team> list = teamService.list(queryWrapper);
+        boolean isAdmin = userService.isAdmin(request);
+        List<TeamUserVO> list = teamService.listTeams(teamQuery,isAdmin);
         return ResultUtils.success(list);
     }
 
@@ -121,7 +143,7 @@ public class TeamController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         Team team =new Team();
-        BeanUtils.copyProperties(team,teamQuery);
+        BeanUtils.copyProperties(teamQuery,team);
         Page<Team> page = new Page<>(teamQuery.getPageNum(),teamQuery.getPageSize());
         QueryWrapper<Team> queryWrapper = new QueryWrapper<>(team);
         Page<Team> resultPage = teamService.page(page,queryWrapper);

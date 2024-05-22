@@ -33,7 +33,6 @@ public class SwaggerConfig {
                 .paths(PathSelectors.any())
                 .build();
     }
-
     /**
      * api 信息
      * @return
