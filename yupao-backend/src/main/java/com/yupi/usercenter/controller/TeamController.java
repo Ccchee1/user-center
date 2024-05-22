@@ -11,6 +11,7 @@ import com.yupi.usercenter.model.domain.User;
 import com.yupi.usercenter.model.dto.TeamQuery;
 import com.yupi.usercenter.model.request.TeamAddRequest;
 import com.yupi.usercenter.model.request.TeamJoinRequest;
+import com.yupi.usercenter.model.request.TeamQuitRequest;
 import com.yupi.usercenter.model.request.TeamUpdateRequest;
 import com.yupi.usercenter.model.vo.TeamUserVO;
 import com.yupi.usercenter.service.TeamService;
@@ -61,16 +62,22 @@ public class TeamController {
         return ResultUtils.success(teamId);
     }
 
+    /**
+     * 解散队伍
+     * @param id
+     * @return
+     */
     @PostMapping("/delete")
-    public BaseResponse<Boolean> deleteTeamById(@RequestBody Long id){
+    public BaseResponse<Boolean> deleteTeam(@RequestBody Long id,HttpServletRequest request){
         if (id <= 0){
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
-        boolean deleteResult = teamService.removeById(id);
-        if(!deleteResult){
+        User loginUser = userService.getLoginUser(request);
+        boolean result = teamService.deleteTeam(id,loginUser);
+        if(!result){
             throw new BusinessException(ErrorCode.SYSTEM_ERROR,"删除失败");
         }
-        return ResultUtils.success(deleteResult);
+        return ResultUtils.success(result);
     }
 
 
@@ -98,7 +105,7 @@ public class TeamController {
 
     /**
      *
-     * @param id
+     * @param
      * @return
      */
     @PostMapping("join")
@@ -150,6 +157,19 @@ public class TeamController {
         return ResultUtils.success(resultPage);
     }
 
+    @PostMapping
+    public BaseResponse<Boolean> quitTeam(@RequestBody TeamQuitRequest teamQuitRequest , HttpServletRequest request){
+        //从前端传过来的请求中获取cookie，然后通过cookie找到对应的session，然后找到对应的用户信息，看用户登录
+        if (teamQuitRequest == null){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        boolean result = teamService.quitTeam(teamQuitRequest,loginUser);
+        if (!result){
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR,"更新失败");
+        }
+        return ResultUtils.success(result);
+    }
 
 
 
