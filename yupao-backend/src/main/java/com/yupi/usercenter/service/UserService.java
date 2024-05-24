@@ -89,4 +89,6 @@ public interface UserService extends IService<User> {
      */
     int updateUser(User user,User loginUser);
 
+    List<User> matchUsers(long num, User loginUser);
+
 }

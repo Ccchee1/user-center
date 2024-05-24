@@ -139,8 +139,8 @@ public class UserController {
     }
 
     @GetMapping("/search/tags")
-    public BaseResponse<List<User>> searchUsersByTags(@RequestParam(required = false) List<String> tagNameList){
-        if (CollectionUtils.isEmpty(tagNameList)){
+    public BaseResponse<List<User>> searchUsersByTags(@RequestParam(required = false) List<String> tagNameList) {
+        if (CollectionUtils.isEmpty(tagNameList)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         List<User> userList = userService.searchUsersByTags(tagNameList);
@@ -148,37 +148,38 @@ public class UserController {
     }
 
     @PostMapping("update")
-    public BaseResponse<Integer> updateUser(@RequestBody  User user,HttpServletRequest request){
+    public BaseResponse<Integer> updateUser(@RequestBody User user, HttpServletRequest request) {
         //从前端传过来的请求中获取cookie，然后通过cookie找到对应的session，然后找到对应的用户信息，看用户登录
-        if (user == null){
+        if (user == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         //Java 会自动进行装箱操作，将 int 类型的返回值转换为 Integer 类型。
         User loginUser = userService.getLoginUser(request);
-        int result = userService.updateUser(user,loginUser);
+        int result = userService.updateUser(user, loginUser);
         return ResultUtils.success(result);
     }
 
     /**
      * 主页推荐
+     *
      * @return
      */
     @GetMapping("/recommend")
-    public BaseResponse<Page<User>> recommendUser(long pageSize,long pageNum,HttpServletRequest request){
+    public BaseResponse<Page<User>> recommendUser(long pageSize, long pageNum, HttpServletRequest request) {
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         User loginUser = userService.getLoginUser(request);
         String redisKey = String.format("yupi.user.recommend.%s", loginUser.getId());
         ValueOperations valueOperations = redisTemplate.opsForValue();
         Page<User> userPage = (Page<User>) valueOperations.get(redisKey);
         //如果有缓存那么直接读取
-        if (userPage != null){
+        if (userPage != null) {
             return ResultUtils.success(userPage);
         }
         //如果没有缓存的话就查数据库后更新缓存
         userPage = userService.page(new Page<>(pageNum, pageSize), queryWrapper);
         try {
             //这里记得要给redis的值设置过期时间，否则容易造成内存泄露
-            valueOperations.set(redisKey,userPage,30000, TimeUnit.MILLISECONDS);
+            valueOperations.set(redisKey, userPage, 30000, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             log.error("redis插入错误");
         }
@@ -192,7 +193,7 @@ public class UserController {
 
     @PostMapping("/delete")
     public BaseResponse<Boolean> deleteUser(@RequestBody long id, HttpServletRequest request) {
-        if (userService.isAdmin(request)){
+        if (userService.isAdmin(request)) {
             throw new BusinessException(ErrorCode.NO_AUTH, "缺少管理员权限");
         }
         if (id <= 0) {
@@ -202,7 +203,21 @@ public class UserController {
         return ResultUtils.success(b);
     }
 
-
+    /**
+     * 获取与自己兴趣最为匹配的用户
+     *
+     * @param num
+     * @param request
+     * @return
+     */
+    @GetMapping("/match")
+    public BaseResponse<List<User>> matchUser(long num, HttpServletRequest request) {
+        if (num <= 0 || num > 20) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        return ResultUtils.success(userService.matchUsers(num,loginUser));
+    }
 
 
 }

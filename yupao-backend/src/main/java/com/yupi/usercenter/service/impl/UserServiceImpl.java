@@ -9,6 +9,7 @@ import com.yupi.usercenter.exception.BusinessException;
 import com.yupi.usercenter.model.domain.User;
 import com.yupi.usercenter.service.UserService;
 import com.yupi.usercenter.mapper.UserMapper;
+import com.yupi.usercenter.untils.AlgorithmUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -257,6 +258,47 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
         return userMapper.updateById(user);
         }
+
+    @Override
+    public List<User> matchUsers(long num, User loginUser) {
+        //查出所有用户列表
+        List<User> userList = this.list();
+        String tags = loginUser.getTags();
+        Gson gson =new Gson();
+        //下面这个大括号是创建匿名内部类的写法，可以不声明的new出一个对象
+        List<String> LoginUserTagList = gson.fromJson(tags, new TypeToken<List<String>>() {
+        }.getType());
+        //创建一个有序集合来记录每个用户的tag与登录用户tag的相似程度
+        SortedMap<Integer,Long> indexDistanceMap =new TreeMap<>();
+        //将每个标签属性非空用户的tags与目前登录用户的tag作比较
+        for (int i = 0; i < userList.size(); i++) {
+            User user = userList.get(i);
+            String userTags = user.getTags();
+            if (StringUtils.isBlank(user.getTags())){
+                continue;
+            }
+            List<String> userTagList = gson.fromJson(userTags, new TypeToken<List<String>>() {
+            }.getType());
+            long distance = AlgorithmUtils.minDistance(LoginUserTagList, userTagList);
+            indexDistanceMap.put(i,distance);
+        }
+
+        //打印前num个的id和分数
+        List<User> userVoList  = new ArrayList<>();
+        int i=0;
+        for (Map.Entry<Integer,Long> entry : indexDistanceMap.entrySet()){
+            if (i > num){
+                break;
+            }
+            User user = userList.get(entry.getKey());
+            System.out.println(user.getId() + ":" + entry.getKey() + ":" + entry.getValue());
+            userVoList.add(user);
+            i++;
+        }
+
+
+        return userVoList;
+    }
 
     /**
      * 是否为管理员
